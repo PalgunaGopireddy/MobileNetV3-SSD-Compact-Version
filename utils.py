@@ -231,10 +231,20 @@ def calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, tr
             overlaps = find_jaccard_overlap(this_detection_box, object_boxes)  # (1, n_class_objects_in_img)
             max_overlap, ind = torch.max(overlaps.squeeze(0), dim=0)  # (), () - scalars
 
+            true_class_boxes = true_class_boxes.cpu()   #####  # To avoid the `RuntimeError: indices should be either on cpu or on the same device as the indexed tensor (cpu)`
+            true_class_images = true_class_images.cpu() #####  # these four variables are sent to cpu device and then converted back to gpu to execute the line
+            this_image = this_image.cpu()               #####  # `original_ind = torch.LongTensor(range(true_class_boxes.size(0)))[true_class_images == this_image][ind]`
+            ind = ind.cpu()                             #####  # which otherwise gives above error
+          
             # 'ind' is the index of the object in these image-level tensors 'object_boxes', 'object_difficulties'
             # In the original class-level tensors 'true_class_boxes', etc., 'ind' corresponds to object with index...
             original_ind = torch.LongTensor(range(true_class_boxes.size(0)))[true_class_images == this_image][ind]
             # We need 'original_ind' to update 'true_class_boxes_detected'
+      
+            true_class_boxes = true_class_boxes.cuda()   #####  
+            true_class_images = true_class_images.cuda() #####
+            this_image = this_image.cuda()               #####
+            ind = ind.cuda()                             #####
 
             # If the maximum overlap is greater than the threshold of 0.5, it's a match
             if max_overlap.item() > 0.5:
